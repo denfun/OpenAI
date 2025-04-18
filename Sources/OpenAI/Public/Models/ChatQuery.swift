@@ -29,6 +29,13 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
     public let logitBias: [String:Int]?
     /// Whether to return log probabilities of the output tokens or not. If true, returns the log probabilities of each output token returned in the content of message. This option is currently not available on the gpt-4-vision-preview model.
     /// Defaults to false
+    //联网搜索
+    public let webSearch: Bool?
+
+    //深度搜索
+    public let deepSearch: Bool?
+
+    
     public let logprobs: Bool?
     /// The maximum number of tokens to generate in the completion.
     /// The total length of input tokens and generated tokens is limited by the model's context length.
@@ -89,6 +96,10 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         reasoningEffort: ReasoningEffort? = nil,
         frequencyPenalty: Double? = nil,
         logitBias: [String : Int]? = nil,
+        //联网搜索
+        webSearch: Bool? = nil,
+        //深度搜索
+        deepSearch: Bool? = nil,
         logprobs: Bool? = nil,
         maxTokens: Int? = nil,
         maxCompletionTokens: Int? = nil,
@@ -111,6 +122,10 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         self.reasoningEffort = reasoningEffort
         self.frequencyPenalty = frequencyPenalty
         self.logitBias = logitBias
+        //联网搜索
+        self.webSearch = webSearch
+        //深度搜索
+        self.deepSearch = deepSearch
         self.logprobs = logprobs
         self.maxTokens = maxTokens
         self.maxCompletionTokens = maxCompletionTokens
@@ -1417,6 +1432,8 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         case reasoningEffort = "reasoning_effort"
         case frequencyPenalty = "frequency_penalty"
         case logitBias = "logit_bias"
+        case webSearch = "web-search"
+        case deepSearch = "deep-search"
         case logprobs
         case maxTokens = "max_tokens"
         case maxCompletionTokens = "max_completion_tokens"
