@@ -319,8 +319,6 @@ extension OpenAI {
                 urlRequest: interceptedRequest
             ) { _, object in
                 onResult(.success(object))
-            } onProcessingError: { _, error in
-                onResult(.success(error))
             } onComplete: { [weak self] session, error in
                 completion?(error)
                 self?.invalidateSession(session)
