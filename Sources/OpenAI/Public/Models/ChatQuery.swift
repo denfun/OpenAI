@@ -36,7 +36,7 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
     public let deepSearch: Bool?
 
     //推理模式 
-    //public let r1Fusion: Bool?
+    public let r1Fusion: Bool?
 
     
     public let logprobs: Bool?
@@ -104,7 +104,7 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         //深度搜索
         deepSearch: Bool? = nil,
         //推理模式
-        //r1Fusion: Bool? = nil,
+        r1Fusion: Bool? = nil,
         logprobs: Bool? = nil,
         maxTokens: Int? = nil,
         maxCompletionTokens: Int? = nil,
@@ -132,7 +132,7 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         //深度搜索
         self.deepSearch = deepSearch
         //推理模式
-        //self.r1Fusion = r1Fusion
+        self.r1Fusion = r1Fusion
         self.logprobs = logprobs
         self.maxTokens = maxTokens
         self.maxCompletionTokens = maxCompletionTokens
@@ -1441,7 +1441,7 @@ public struct ChatQuery: Equatable, Codable, Streamable, Sendable {
         case logitBias = "logit_bias"
         case webSearch = "web-search"
         case deepSearch = "deep-search"
-        //case r1Fusion = "r1-fusion"
+        case r1Fusion = "r1-fusion"
         case logprobs
         case maxTokens = "max_tokens"
         case maxCompletionTokens = "max_completion_tokens"
