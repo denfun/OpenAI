@@ -320,11 +320,23 @@ extension OpenAI {
             ) { _, object in
                 onResult(.success(object))
             } onProcessingError: { _, error in
-                onResult(.failure(error))
+                onResult(.success(error))
             } onComplete: { [weak self] session, error in
                 completion?(error)
                 self?.invalidateSession(session)
             }
+            
+            
+//            let session = streamingSessionFactory.makeServerSentEventsStreamingSession(
+//                urlRequest: interceptedRequest
+//            ) { _, object in
+//                onResult(.success(object))
+//            } onProcessingError: { _, error in
+//                onResult(.failure(error))
+//            } onComplete: { [weak self] session, error in
+//                completion?(error)
+//                self?.invalidateSession(session)
+//            }
             
             return runSession(session)
         } catch {
