@@ -62,7 +62,7 @@ final class ServerSentEventsStreamInterpreter <ResultType: Codable & Sendable>: 
             guard jsonContent != streamingCompletionMarker && !jsonContent.isEmpty else {
                 return
             }
-            print("processEvent jsonContent:\(jsonContent)")
+            
             guard let jsonData = jsonContent.data(using: .utf8) else {
                 onError?(StreamingError.unknownContent)
                 return
