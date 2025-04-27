@@ -230,7 +230,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
         case citations
     }
     
-    init(id: String, created: Int, model: String, object: String, serviceTier: String? = nil, systemFingerprint: String？ = nil, choices: [Choice], usage: Self.CompletionUsage? = nil, citations: [String]? = nil) {
+    init(id: String, created: Int, model: String, object: String, serviceTier: String? = nil, systemFingerprint: String? = nil, choices: [Choice], usage: Self.CompletionUsage? = nil, citations: [String]? = nil) {
         self.id = id
         self.created = created
         self.model = model
