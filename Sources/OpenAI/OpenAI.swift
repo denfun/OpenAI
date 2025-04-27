@@ -315,10 +315,10 @@ extension OpenAI {
                 middleware.intercept(request: current)
             }
 
-            let session = streamingSessionFactory.makeServerSentEventsStreamingSession(
-                urlRequest: interceptedRequest
-            ) { _, object in
+            let session = streamingSessionFactory.makeServerSentEventsStreamingSession( urlRequest: interceptedRequest ) { _, object in
                 onResult(.success(object))
+            } onProcessingError: { _, error in
+                onResult(.failure(error))
             } onComplete: { [weak self] session, error in
                 completion?(error)
                 self?.invalidateSession(session)
