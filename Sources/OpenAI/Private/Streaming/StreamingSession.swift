@@ -101,8 +101,7 @@ final class StreamingSession<Interpreter: StreamInterpreter>: NSObject, Identifi
             self.onReceiveContent?(self, content)
         } onError: { [weak self] error in
             guard let self else { return }
-            //self.onProcessingError?(self, error)
-            self.onReceiveContent?(self, content)
+            self.onProcessingError?(self, error)
         }
     }
 }
