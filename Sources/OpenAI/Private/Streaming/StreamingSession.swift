@@ -21,7 +21,7 @@ final class StreamingSession<Interpreter: StreamInterpreter>: NSObject, Identifi
     private let middlewares: [OpenAIMiddleware]
     private let executionSerializer: ExecutionSerializer
     private let onReceiveContent: (@Sendable (StreamingSession, ResultType) -> Void)?
-    private let onProcessingReasoning: (@Sendable (StreamingSession, ResultType) -> Void)?
+    private let onProcessingError: (@Sendable (StreamingSession, Error) -> Void)?
     private let onComplete: (@Sendable (StreamingSession, Error?) -> Void)?
 
     init(
@@ -32,7 +32,7 @@ final class StreamingSession<Interpreter: StreamInterpreter>: NSObject, Identifi
         middlewares: [OpenAIMiddleware],
         executionSerializer: ExecutionSerializer = GCDQueueAsyncExecutionSerializer(queue: .userInitiated),
         onReceiveContent: @escaping @Sendable (StreamingSession, ResultType) -> Void,
-        onProcessingReasoning: @escaping @Sendable (StreamingSession, ResultType) -> Void,
+        onProcessingError: @escaping @Sendable (StreamingSession, Error) -> Void,
         onComplete: @escaping @Sendable (StreamingSession, Error?) -> Void
     ) {
         self.urlSessionFactory = urlSessionFactory
@@ -42,7 +42,7 @@ final class StreamingSession<Interpreter: StreamInterpreter>: NSObject, Identifi
         self.middlewares = middlewares
         self.executionSerializer = executionSerializer
         self.onReceiveContent = onReceiveContent
-        self.onProcessingReasoning = onProcessingReasoning
+        self.onProcessingError = onProcessingError
         self.onComplete = onComplete
         super.init()
         subscribeToParser()
