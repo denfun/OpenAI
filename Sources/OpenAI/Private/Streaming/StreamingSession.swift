@@ -32,7 +32,7 @@ final class StreamingSession<Interpreter: StreamInterpreter>: NSObject, Identifi
         middlewares: [OpenAIMiddleware],
         executionSerializer: ExecutionSerializer = GCDQueueAsyncExecutionSerializer(queue: .userInitiated),
         onReceiveContent: @escaping @Sendable (StreamingSession, ResultType) -> Void,
-        onProcessingError: @escaping @Sendable (StreamingSession, ResultType) -> Void,
+        onProcessingReasoning: @escaping @Sendable (StreamingSession, ResultType) -> Void,
         onComplete: @escaping @Sendable (StreamingSession, Error?) -> Void
     ) {
         self.urlSessionFactory = urlSessionFactory
