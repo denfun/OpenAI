@@ -31,6 +31,7 @@ final public class OpenAI: @unchecked Sendable {
         public let basePath: String
 
         //public let port: Int
+        
         public let scheme: String
         
         /// Default request timeout
@@ -50,8 +51,8 @@ final public class OpenAI: @unchecked Sendable {
         public init(token: String?, organizationIdentifier: String? = nil, host: String = "api.openai.com", scheme: String = "https", basePath: String = "/v1", timeoutInterval: TimeInterval = 60.0, customHeaders: [String: String] = [:], parsingOptions: ParsingOptions = []) {
             self.token = token
             self.organizationIdentifier = organizationIdentifier
-//            self.host = host
-            self.port = port
+            self.host = host
+//            self.port = port
             self.scheme = scheme
             self.basePath = basePath
             self.timeoutInterval = timeoutInterval
