@@ -228,7 +228,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
         case choices
         case serviceTier = "service_tier"
         case systemFingerprint = "system_fingerprint"
-        case usage
+//        case usage
         case citations
     }
     
