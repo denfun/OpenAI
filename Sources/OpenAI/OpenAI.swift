@@ -30,7 +30,7 @@ final public class OpenAI: @unchecked Sendable {
         /// Optional base path if you set up OpenAI API proxy on a custom path on your own host. Default is "/v1"
         public let basePath: String
 
-        public let port: Int
+        //public let port: Int
         public let scheme: String
         
         /// Default request timeout
@@ -47,11 +47,11 @@ final public class OpenAI: @unchecked Sendable {
         
         public let parsingOptions: ParsingOptions
         
-        public init(token: String?, organizationIdentifier: String? = nil, host: String = "api.openai.com", port: Int = 443, scheme: String = "https", basePath: String = "/v1", timeoutInterval: TimeInterval = 60.0, customHeaders: [String: String] = [:], parsingOptions: ParsingOptions = []) {
+        public init(token: String?, organizationIdentifier: String? = nil, host: String = "api.openai.com",  scheme: String = "https", basePath: String = "/v1", timeoutInterval: TimeInterval = 60.0, customHeaders: [String: String] = [:], parsingOptions: ParsingOptions = []) {
             self.token = token
             self.organizationIdentifier = organizationIdentifier
             self.host = host
-            self.port = port
+            //self.port = port
             self.scheme = scheme
             self.basePath = basePath
             self.timeoutInterval = timeoutInterval
