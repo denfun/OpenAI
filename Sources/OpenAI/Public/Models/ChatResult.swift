@@ -180,14 +180,16 @@ public struct ChatResult: Codable, Equatable, Sendable {
     public struct CompletionUsage: Codable, Equatable, Sendable {
 
         /// Number of tokens in the generated completion.
-        //public let completionTokens: Int
+        public let completionTokens: Int
+        
         /// Number of tokens in the prompt.
         public let promptTokens: Int
+        
         /// Total number of tokens used in the request (prompt + completion).
         public let totalTokens: Int
 
         enum CodingKeys: String, CodingKey {
-            //case completionTokens = "completion_tokens"
+            case completionTokens = "completion_tokens"
             case promptTokens = "prompt_tokens"
             case totalTokens = "total_tokens"
         }
@@ -209,7 +211,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
     /// A list of chat completion choices. Can be more than one if n is greater than 1.
     public let choices: [Choice]
     /// Usage statistics for the completion request.
-    public let usage: Self.CompletionUsage?
+    //public let usage: Self.CompletionUsage?
     
     /// Following are fields that are not part of OpenAI API Reference, but are present in responses from other providers
     ///
@@ -230,7 +232,8 @@ public struct ChatResult: Codable, Equatable, Sendable {
         case citations
     }
     
-    init(id: String, created: Int, model: String, object: String, serviceTier: String? = nil, systemFingerprint: String, choices: [Choice], usage: Self.CompletionUsage? = nil, citations: [String]? = nil) {
+    //init(id: String, created: Int, model: String, object: String, serviceTier: String? = nil, systemFingerprint: String, choices: [Choice], usage: Self.CompletionUsage? = nil, citations: [String]? = nil) {
+    init(id: String, created: Int, model: String, object: String, serviceTier: String? = nil, systemFingerprint: String, choices: [Choice], citations: [String]? = nil) {
         self.id = id
         self.created = created
         self.model = model
@@ -238,7 +241,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
         self.serviceTier = serviceTier
         self.systemFingerprint = systemFingerprint
         self.choices = choices
-        self.usage = usage
+        //self.usage = usage
         self.citations = citations
     }
     
@@ -252,7 +255,7 @@ public struct ChatResult: Codable, Equatable, Sendable {
         self.choices = try container.decode([ChatResult.Choice].self, forKey: .choices)
         self.serviceTier = try container.decodeIfPresent(String.self, forKey: .serviceTier)
         //self.systemFingerprint = try container.decodeString(forKey: .systemFingerprint, parsingOptions: parsingOptions)
-        self.usage = try container.decodeIfPresent(ChatResult.CompletionUsage.self, forKey: .usage)
+        //self.usage = try container.decodeIfPresent(ChatResult.CompletionUsage.self, forKey: .usage)
         self.citations = try container.decodeIfPresent([String].self, forKey: .citations)
     }
 }
