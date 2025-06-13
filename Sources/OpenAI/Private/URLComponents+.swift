@@ -15,7 +15,7 @@ extension URLComponents {
         var components = URLComponents()
         components.scheme = configuration.scheme
         components.host = configuration.host
-        //components.port = configuration.port
+        components.port = configuration.port
         
         let pathComponents = [configuration.basePath, path]
             .filter { !$0.isEmpty }
