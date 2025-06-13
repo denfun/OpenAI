@@ -180,14 +180,14 @@ public struct ChatResult: Codable, Equatable, Sendable {
     public struct CompletionUsage: Codable, Equatable, Sendable {
 
         /// Number of tokens in the generated completion.
-        public let completionTokens: Int?
+        //public let completionTokens: Int
         /// Number of tokens in the prompt.
         public let promptTokens: Int
         /// Total number of tokens used in the request (prompt + completion).
         public let totalTokens: Int
 
         enum CodingKeys: String, CodingKey {
-            case completionTokens = "completion_tokens"
+            //case completionTokens = "completion_tokens"
             case promptTokens = "prompt_tokens"
             case totalTokens = "total_tokens"
         }
