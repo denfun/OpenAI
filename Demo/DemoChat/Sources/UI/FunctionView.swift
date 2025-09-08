@@ -35,9 +35,7 @@ struct FunctionView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        guard let parameters = validateParameters() else {
-                            return
-                        }
+                        let parameters = validateParameters()
                         guard !isShowingAlert else {
                             return
                         }
@@ -59,8 +57,8 @@ struct FunctionView: View {
         }
 
         do {
-            let schema = try JSONDecoder().decode(JSONSchemaObject.self, from: parametersData)
-            return .object(schema)
+            let parametersJSON = try JSONDecoder().decode(JSONSchema.self, from: parametersData)
+            return parametersJSON
         } catch {
             alertMessage = error.localizedDescription
             isShowingAlert = true

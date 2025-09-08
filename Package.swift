@@ -5,25 +5,17 @@ import PackageDescription
 
 let package = Package(
     name: "OpenAI",
-    platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .visionOS(.v1)],
     products: [
         .library(
             name: "OpenAI",
-            targets: ["OpenAI"]
-        ),
-    ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.8.2")
+            targets: ["OpenAI"]),
     ],
     targets: [
         .target(
             name: "OpenAI",
-            dependencies: [
-                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")
-            ]
-        ),
+            dependencies: []),
         .testTarget(
             name: "OpenAITests",
-            dependencies: ["OpenAI"])
+            dependencies: ["OpenAI"]),
     ]
 )

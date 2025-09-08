@@ -11,72 +11,62 @@ ___
 
 This repository contains Swift community-maintained implementation over [OpenAI](https://platform.openai.com/docs/api-reference/) public API. 
 
+- [What is OpenAI](#what-is-openai)
 - [Installation](#installation)
-    - [Swift Package Manager](#swift-package-manager)
 - [Usage](#usage)
     - [Initialization](#initialization)
-    - [Using the SDK for other providers except OpenAI](#using-the-sdk-for-other-providers-except-openai)
-    - [Cancelling requests](#cancelling-requests)
-- [Text and prompting](#text-and-prompting)
-    - [Responses](#responses)
-    - [Chat Completions](#chat-completions)
-- [Function calling](#function-calling)
-- [Tools](#tools)
-    - [MCP (Model Context Protocol)](#mcp-model-context-protocol)
-        - [MCP Tool Integration](#mcp-tool-integration)
-- [Images](#images)
-    - [Create Image](#create-image)
-    - [Create Image Edit](#create-image-edit)
-    - [Create Image Variation](#create-image-variation)
-- [Audio](#audio)
-    - [Audio Create Speech](#audio-create-speech)
-    - [Audio Transcriptions](#audio-transcriptions)
-    - [Audio Translations](#audio-translations)
-- [Structured Outputs](#structured-outputs)
-- [Specialized models](#specialized-models)
+    - [Chats](#chats)
+        - [Chats Streaming](#chats-streaming) 
+        - [Structured Output](#structured-output) 
+    - [Images](#images)
+        - [Create Image](#create-image)
+        - [Create Image Edit](#create-image-edit)
+        - [Create Image Variation](#create-image-variation)
+    - [Audio](#audio)
+        - [Audio Create Speech](#audio-create-speech)
+        - [Audio Transcriptions](#audio-transcriptions)
+        - [Audio Translations](#audio-translations)
     - [Embeddings](#embeddings)
-    - [Moderations](#moderations)
-- [Assistants (Beta)](#assistants)
-    - [Create Assistant](#create-assistant)
-    - [Modify Assistant](#modify-assistant)
-    - [List Assistants](#list-assistants) 
-    - [Threads](#threads)
-        - [Create Thread](#create-thread)
-        - [Create and Run Thread](#create-and-run-thread)
-        - [Get Threads Messages](#get-threads-messages)
-        - [Add Message to Thread](#add-message-to-thread)
-    - [Runs](#runs)
-        - [Create Run](#create-run)
-        - [Retrieve Run](#retrieve-run)
-        - [Retrieve Run Steps](#retrieve-run-steps)
-        - [Submit Tool Outputs for Run](#submit-tool-outputs-for-run)
-    - [Files](#files)
-        - [Upload File](#upload-file)
-- [Other APIs](#other-apis)
     - [Models](#models)
         - [List Models](#list-models)
         - [Retrieve Model](#retrieve-model)
+    - [Moderations](#moderations)
     - [Utilities](#utilities)
+    - [Combine Extensions](#combine-extensions)
+    - [Assistants (Beta)](#assistants)
+        - [Create Assistant](#create-assistant)
+        - [Modify Assistant](#modify-assistant)
+        - [List Assistants](#list-assistants) 
+        - [Threads](#threads)
+          - [Create Thread](#create-thread)
+          - [Create and Run Thread](#create-and-run-thread)
+          - [Get Threads Messages](#get-threads-messages)
+          - [Add Message to Thread](#add-message-to-thread)
+        - [Runs](#runs)
+          - [Create Run](#create-run)
+          - [Retrieve Run](#retrieve-run)
+          - [Retrieve Run Steps](#retrieve-run-steps)
+          - [Submit Tool Outputs for Run](#submit-tool-outputs-for-run)
+        - [Files](#files)
+          - [Upload File](#upload-file)
+  - [Cancelling requests](#cancelling-requests)
 - [Support for other providers: Gemini, DeepSeek, Perplexity, OpenRouter, etc.](#support-for-other-providers)
 - [Example Project](#example-project)
 - [Contribution Guidelines](#contribution-guidelines)
 - [Links](#links)
 - [License](#license)
-## Documentation
 
-This library implements it's types and methods in close accordance to the REST API documentation, which can be found on [platform.openai.com](https://platform.openai.com/docs/api-reference).
+## What is OpenAI
+
+OpenAI is a non-profit artificial intelligence research organization founded in San Francisco, California in 2015. It was created with the purpose of advancing digital intelligence in ways that benefit humanity as a whole and promote societal progress. The organization strives to develop AI (Artificial Intelligence) programs and systems that can think, act and adapt quickly on their own – autonomously. OpenAI's mission is to ensure safe and responsible use of AI for civic good, economic growth and other public benefits; this includes cutting-edge research into important topics such as general AI safety, natural language processing, applied reinforcement learning methods, machine vision algorithms etc.
+
+>The OpenAI API can be applied to virtually any task that involves understanding or generating natural language or code. We offer a spectrum of models with different levels of power suitable for different tasks, as well as the ability to fine-tune your own custom models. These models can be used for everything from content generation to semantic search and classification.
 
 ## Installation
 
-### Swift Package Manager
-
-To integrate OpenAI into your Xcode project using Swift Package Manager:
-
-1.  In Xcode, go to **File > Add Package Dependencies...**
-2.  Enter the repository URL: `https://github.com/MacPaw/OpenAI.git`
-3.  Choose your desired dependency rule (e.g., "Up to Next Major Version").
-
-Alternatively, you can add it directly to your `Package.swift` file:
+OpenAI is available with Swift Package Manager.
+The Swift Package Manager is a tool for automating the distribution of Swift code and is integrated into the swift compiler.
+Once you have your Swift package set up, adding OpenAI as a dependency is as easy as adding it to the dependencies value of your Package.swift.
 
 ```swift
 dependencies: [
@@ -113,294 +103,170 @@ See `OpenAI.Configuration` for more values that can be passed on init for custom
 
 Once you posses the token, and the instance is initialized you are ready to make requests.
 
-### Using the SDK for other providers except OpenAI
+### Chats
 
-This SDK is more focused on working with OpenAI Platform, but also works with other providers that support OpenAI-compatible API.
+Using the OpenAI Chat API, you can build your own applications with `gpt-3.5-turbo` to do things like:
 
-Use `.relaxed` parsing option on Configuration, or see more details on the topic [here](#support-for-other-providers)
+* Draft an email or other piece of writing
+* Write Python code
+* Answer questions about a set of documents
+* Create conversational agents
+* Give your software a natural language interface
+* Tutor in a range of subjects
+* Translate languages
+* Simulate characters for video games and much more
 
-### Cancelling requests
-
-For Swift Concurrency calls, you can simply cancel the calling task, and corresponding underlying `URLSessionDataTask` would get cancelled automatically.
+**Request**
 
 ```swift
-let task = Task {
-    do {
-        let chatResult = try await openAIClient.chats(query: .init(messages: [], model: "asd"))
-    } catch {
-        // Handle cancellation or error
-    }
+struct ChatQuery: Codable {
+    /// ID of the model to use.
+    public let model: Model
+    /// An object specifying the format that the model must output.
+    public let responseFormat: ResponseFormat?
+    /// The messages to generate chat completions for
+    public let messages: [Message]
+    /// A list of tools the model may call. Currently, only functions are supported as a tool. Use this to provide a list of functions the model may generate JSON inputs for.
+    public let tools: [Tool]?
+    /// Controls how the model responds to tool calls. "none" means the model does not call a function, and responds to the end-user. "auto" means the model can pick between and end-user or calling a function. Specifying a particular function via `{"name": "my_function"}` forces the model to call that function. "none" is the default when no functions are present. "auto" is the default if functions are present.
+    public let toolChoice: ToolChoice?
+    /// What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and  We generally recommend altering this or top_p but not both.
+    public let temperature: Double?
+    /// An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.
+    public let topP: Double?
+    /// How many chat completion choices to generate for each input message.
+    public let n: Int?
+    /// Up to 4 sequences where the API will stop generating further tokens. The returned text will not contain the stop sequence.
+    public let stop: [String]?
+    /// The maximum number of tokens to generate in the completion.
+    public let maxTokens: Int?
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
+    public let presencePenalty: Double?
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
+    public let frequencyPenalty: Double?
+    /// Modify the likelihood of specified tokens appearing in the completion.
+    public let logitBias: [String:Int]?
+    /// A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.
+    public let user: String?
 }
-            
-task.cancel()
 ```
 
-<details>
-<summary>Cancelling closure-based API calls</summary>
-
-When you call any of the closure-based API methods, it returns discardable `CancellableRequest`. Hold a reference to it to be able to cancel the request later.
-```swift
-let cancellableRequest = object.chats(query: query, completion: { _ in })
-cancellableReques
-```
-
-</details>
-
-<details>
-<summary>Cancelling Combine subscriptions</summary>
-In Combine, use a default cancellation mechanism. Just discard the reference to a subscription, or call `cancel()` on it.
+**Response**
 
 ```swift
-let subscription = openAIClient
-    .images(query: query)
-    .sink(receiveCompletion: { completion in }, receiveValue: { imagesResult in })
+struct ChatResult: Codable, Equatable {
+    public struct Choice: Codable, Equatable {
+        public let index: Int
+        public let message: Chat
+        public let finishReason: String
+    }
     
-subscription.cancel()
-```
-</details>
-
-## Text and prompting
-
-### Responses
-
-Use `responses` variable on `OpenAIProtocol` to call Responses API methods.
-
-```swift
-public protocol OpenAIProtocol {
-    // ...
-    var responses: ResponsesEndpointProtocol { get }
-    // ...
-}
-```
-
-Specify params by passing `CreateModelResponseQuery` to a method. Get `ResponseObject` or a stream of `ResponseStreamEvent` events in response.
-
-**Example: Generate text from a simple prompt**
-```swift
-let client: OpenAIProtocol = /* client initialization code */
-
-let query = CreateModelResponseQuery(
-    input: .textInput("Write a one-sentence bedtime story about a unicorn."),
-    model: .gpt4_1
-)
-
-let response: ResponseObject = try await client.responses.createResponse(query: query)
-// ...
-```
-<details>
-<summary>print(response)</summary>
-
-```
-ResponseObject(
-  createdAt: 1752146109,
-  error: nil,
-  id: "resp_686fa0bd8f588198affbbf5a8089e2d208a5f6e2111e31f5",
-  incompleteDetails: nil,
-  instructions: nil,
-  maxOutputTokens: nil,
-  metadata: [:],
-  model: "gpt-4.1-2025-04-14",
-  object: "response",
-  output: [
-    OpenAI.OutputItem.outputMessage(
-      OpenAI.Components.Schemas.OutputMessage(
-        id: "msg_686fa0bee24881988a4d1588d7f65c0408a5f6e2111e31f5",
-        _type: OpenAI.Components.Schemas.OutputMessage._TypePayload.message,
-        role: OpenAI.Components.Schemas.OutputMessage.RolePayload.assistant,
-        content: [
-          OpenAI.Components.Schemas.OutputContent.OutputTextContent(
-            OpenAI.Components.Schemas.OutputTextContent(
-              _type: OpenAI.Components.Schemas.OutputTextContent._TypePayload.outputText,
-              text: "Under a sky full of twinkling stars, a gentle unicorn named Luna danced through fields of stardust, spreading sweet dreams to every sleeping child.",
-              annotations: [],
-              logprobs: Optional([])
-            )
-          )
-        ],
-        status: OpenAI.Components.Schemas.OutputMessage.StatusPayload.completed
-      )
-    )
-  ],
-  parallelToolCalls: true,
-  previousResponseId: nil,
-  reasoning: Optional(
-    OpenAI.Components.Schemas.Reasoning(
-      effort: nil,
-      summary: nil,
-      generateSummary: nil
-    )
-  ),
-  status: "completed",
-  temperature: Optional(1.0),
-  text: OpenAI.Components.Schemas.ResponseProperties.TextPayload(
-    format: Optional(
-      OpenAI.Components.Schemas.TextResponseFormatConfiguration.ResponseFormatText(
-        OpenAI.Components.Schemas.ResponseFormatText(
-          _type: OpenAI.Components.Schemas.ResponseFormatText._TypePayload.text
-        )
-      )
-    ),
-    toolChoice: OpenAI.Components.Schemas.ResponseProperties.ToolChoicePayload.ToolChoiceOptions(
-      OpenAI.Components.Schemas.ToolChoiceOptions.auto
-    ),
-    tools: [],
-    topP: Optional(1.0),
-    truncation: Optional("disabled"),
-    usage: Optional(
-      OpenAI.Components.Schemas.ResponseUsage(
-        inputTokens: 18,
-        inputTokensDetails: OpenAI.Components.Schemas.ResponseUsage.InputTokensDetailsPayload(
-          cachedTokens: 0
-        ),
-        outputTokens: 32,
-        outputTokensDetails: OpenAI.Components.Schemas.ResponseUsage.OutputTokensDetailsPayload(
-          reasoningTokens: 0
-        ),
-        totalTokens: 50
-      )
-    ),
-    user: nil
-  )
-)
-````
-
-</details>
-
-An array of content generated by the model is in the `output` property of the response.
-
-> [!NOTE] **The `output` array often has more than one item in it!** It can contain tool calls, data about reasoning tokens generated by reasoning models, and other items. It is not safe to assume that the model's text output is present at `output[0].content[0].text`.
-
-Because of the note above, to safely and fully read the response, we'd need to switch both over messages and their contents, like this:
-
-```swift
-// ...
-for output in response.output {
-    switch output {
-    case .outputMessage(let outputMessage):
-        for content in outputMessage.content {
-            switch content {
-            case .OutputTextContent(let textContent):
-                print(textContent.text)
-            case .RefusalContent(let refusalContent):
-                print(refusalContent.refusal)
-            }
-        }
-    default:
-        // Unhandled output items. Handle or throw an error.
+    public struct Usage: Codable, Equatable {
+        public let promptTokens: Int
+        public let completionTokens: Int
+        public let totalTokens: Int
     }
+    
+    public let id: String
+    public let object: String
+    public let created: TimeInterval
+    public let model: Model
+    public let choices: [Choice]
+    public let usage: Usage
 }
 ```
 
-### Chat Completions
-
-Use `ChatQuery` with `func chats(query:)` and `func chatsStream(query:)` methods on `OpenAIProtocol` to generate text using Chat Completions API. Get `ChatResult` or `ChatStreamResult` in response.
-
-**Example: Generate text from a simple prompt**
+**Example**
 
 ```swift
-let query = ChatQuery(
-    messages: [
-        .user(.init(content: .string("Who are you?")))
-    ],
-    model: .gpt4_o
-)
-
+let query = ChatQuery(model: .gpt3_5Turbo, messages: [.init(role: .user, content: "who are you")])
 let result = try await openAI.chats(query: query)
-
-print(result.choices.first?.message.content ?? "")
-// printed to console:
-// I'm an AI language model created by OpenAI, designed to assist with a wide range of questions and tasks. How can I help you today?
 ```
-
-<details>
-<summary>po result</summary>
 
 ```
 (lldb) po result
 ▿ ChatResult
-  - id : "chatcmpl-BgWJTzbVczdJDusTqVpnR6AQ2w6Fd"
-  - created : 1749473687
-  - model : "gpt-4o-2024-08-06"
+  - id : "chatcmpl-6pwjgxGV2iPP4QGdyOLXnTY0LE3F8"
   - object : "chat.completion"
-  ▿ serviceTier : Optional<ServiceTier>
-    - some : OpenAI.ServiceTier.defaultTier
-  ▿ systemFingerprint : Optional<String>
-    - some : "fp_07871e2ad8"
+  - created : 1677838528.0
+  - model : "gpt-3.5-turbo-0301"
   ▿ choices : 1 element
     ▿ 0 : Choice
       - index : 0
-      - logprobs : nil
-      ▿ message : Message
-        ▿ content : Optional<String>
-          - some : "I am an AI language model created by OpenAI, known as ChatGPT. I\'m here to assist with answering questions, providing explanations, and engaging in conversation on a wide range of topics. If you have any questions or need assistance, feel free to ask!"
-        - refusal : nil
+      ▿ message : Chat
         - role : "assistant"
-        ▿ annotations : Optional<Array<Annotation>>
-          - some : 0 elements
-        - audio : nil
-        - toolCalls : nil
-        - _reasoning : nil
-        - _reasoningContent : nil
-      - finishReason : "stop"
-  ▿ usage : Optional<CompletionUsage>
-    ▿ some : CompletionUsage
-      - completionTokens : 52
-      - promptTokens : 11
-      - totalTokens : 63
-      ▿ promptTokensDetails : Optional<PromptTokensDetails>
-        ▿ some : PromptTokensDetails
-          - audioTokens : 0
-          - cachedTokens : 0
-  - citations : nil
+        - content : "\n\nI\'m an AI language model developed by OpenAI, created to provide assistance and support for various tasks such as answering questions, generating text, and providing recommendations. Nice to meet you!"
+      - finish_reason : "stop"
+  ▿ usage : Usage
+    - prompt_tokens : 10
+    - completion_tokens : 39
+    - total_tokens : 49
 ```
 
-</details>
+#### Chats Streaming
 
-<!-- ## Images and vision
+Chats streaming is available by using `chatStream` function. Tokens will be sent one-by-one.
 
-## Audio and speech
+**Closures**
+```swift
+openAI.chatsStream(query: query) { partialResult in
+    switch partialResult {
+    case .success(let result):
+        print(result.choices)
+    case .failure(let error):
+        //Handle chunk error here
+    }
+} completion: { error in
+    //Handle streaming error here
+}
+```
 
-## Structured Outputs -->
-
-## Function calling
-
-See [OpenAI Platform Guide: Function calling](https://platform.openai.com/docs/guides/function-calling?api-mode=responses) for more details.
-
-<details>
-
-<summary>Chat Completions API Examples</summary>
-
-### Function calling with get_weather function
+**Combine**
 
 ```swift
+openAI
+    .chatsStream(query: query)
+    .sink { completion in
+        //Handle completion result here
+    } receiveValue: { result in
+        //Handle chunk here
+    }.store(in: &cancellables)
+```
+
+**Structured concurrency**
+```swift
+for try await result in openAI.chatsStream(query: query) {
+   //Handle result here
+}
+```
+
+**Function calls**
+```swift
 let openAI = OpenAI(apiToken: "...")
-// Declare functions which model might decide to call.
+// Declare functions which GPT-3 might decide to call.
 let functions = [
-    ChatQuery.ChatCompletionToolParam.FunctionDefinition(
-        name: "get_weather",
-        description: "Get current temperature for a given location.",
-        parameters: .init(fields: [
-            .type(.object),
-            .properties([
-                "location": .init(fields: [
-                    .type(.string),
-                    .description("City and country e.g. Bogotá, Colombia")
-                ])
-            ]),
-            .required(["location"]),
-            .additionalProperties(.boolean(false))
-        ])
-    )
+  FunctionDeclaration(
+      name: "get_current_weather",
+      description: "Get the current weather in a given location",
+      parameters:
+        JSONSchema(
+          type: .object,
+          properties: [
+            "location": .init(type: .string, description: "The city and state, e.g. San Francisco, CA"),
+            "unit": .init(type: .string, enumValues: ["celsius", "fahrenheit"])
+          ],
+          required: ["location"]
+        )
+  )
 ]
 let query = ChatQuery(
-    messages: [
-        .user(.init(content: .string("What is the weather like in Paris today?"
-    ],
-    model: .gpt4_1,
-    tools: functions.map { .init(function: $0) }
+  model: "gpt-3.5-turbo-0613",  // 0613 is the earliest version with function calls support.
+  messages: [
+      Chat(role: .user, content: "What's the weather like in Boston?")
+  ],
+  tools: functions.map { Tool.function($0) }
 )
 let result = try await openAI.chats(query: query)
-print(result.choices[0].message.toolCalls)
 ```
 
 Result will be (serialized as JSON here for readability):
@@ -434,9 +300,58 @@ Result will be (serialized as JSON here for readability):
 
 ```
 
-</details>
+Review [Chat Documentation](https://platform.openai.com/docs/guides/chat) for more info.
 
-## Images
+#### Structured Output
+
+JSON is one of the most widely used formats in the world for applications to exchange data.
+
+Structured Outputs is a feature that ensures the model will always generate responses that adhere to your supplied JSON Schema, so you don't need to worry about the model omitting a required key, or hallucinating an invalid enum value.
+
+**Example**
+
+```swift
+struct MovieInfo: StructuredOutput {
+    
+    let title: String
+    let director: String
+    let release: Date
+    let genres: [MovieGenre]
+    let cast: [String]
+    
+    static let example: Self = { 
+        .init(
+            title: "Earth",
+            director: "Alexander Dovzhenko",
+            release: Calendar.current.date(from: DateComponents(year: 1930, month: 4, day: 1))!,
+            genres: [.drama],
+            cast: ["Stepan Shkurat", "Semyon Svashenko", "Yuliya Solntseva"]
+        )
+    }()
+}
+
+enum MovieGenre: String, Codable, StructuredOutputEnum {
+    case action, drama, comedy, scifi
+    
+    var caseNames: [String] { Self.allCases.map { $0.rawValue } }
+}
+
+let query = ChatQuery(
+    messages: [.system(.init(content: "Best Picture winner at the 2011 Oscars"))],
+    model: .gpt4_o,
+    responseFormat: .jsonSchema(name: "movie-info", type: MovieInfo.self)
+)
+let result = try await openAI.chats(query: query)
+```
+
+- Use the `jsonSchema(name:type:)` response format when creating a `ChatQuery`
+- Provide a schema name and a type that conforms to `ChatQuery.StructuredOutput` and generates an instance as an example
+- Make sure all enum types within the provided type conform to `ChatQuery.StructuredOutputEnum` and generate an array of names for all cases
+
+
+Review [Structured Output Documentation](https://platform.openai.com/docs/guides/structured-outputs) for more info.
+
+### Images
 
 Given a prompt and/or an input image, the model will generate a new image.
 
@@ -568,7 +483,7 @@ let result = try await openAI.imageVariations(query: query)
 
 Review [Images Documentation](https://platform.openai.com/docs/api-reference/images) for more info.
 
-## Audio
+### Audio
 
 The speech to text API provides two endpoints, transcriptions and translations, based on our state-of-the-art open source large-v2 [Whisper model](https://openai.com/research/whisper). They can be used to:
 
@@ -576,7 +491,7 @@ Transcribe audio into whatever language the audio is in.
 Translate and transcribe the audio into english.
 File uploads are currently limited to 25 MB and the following input file types are supported: mp3, mp4, mpeg, mpga, m4a, wav, and webm.
 
-### Audio Create Speech
+#### Audio Create Speech
 
 This function sends an `AudioSpeechQuery` to the OpenAI API to create audio speech from text using a specific voice and format. 
 
@@ -617,7 +532,7 @@ let result = try await openAI.audioCreateSpeech(query: query)
 ```
 [OpenAI Create Speech – Documentation](https://platform.openai.com/docs/api-reference/audio/createSpeech)
 
-### Audio Create Speech Streaming
+#### Audio Create Speech Streaming
 
 Audio Create Speech is available by using `audioCreateSpeechStream` function. Tokens will be sent one-by-one.
 
@@ -654,7 +569,7 @@ for try await result in openAI.audioCreateSpeechStream(query: query) {
 }
 ```
 
-### Audio Transcriptions
+#### Audio Transcriptions
 
 Transcribes audio into the input language.
 
@@ -695,7 +610,7 @@ openAI.audioTranscriptions(query: query) { result in
 let result = try await openAI.audioTranscriptions(query: query)
 ```
 
-### Audio Translations
+#### Audio Translations
 
 Translates audio into into English.
 
@@ -736,317 +651,6 @@ let result = try await openAI.audioTranslations(query: query)
 ```
 
 Review [Audio Documentation](https://platform.openai.com/docs/api-reference/audio) for more info.
-
-## Structured Outputs
-
-> [!NOTE] This section focuses on non-function calling use cases in the Responses and Chat Completions APIs. To learn more about how to use Structured Outputs with function calling, check out the [Function Calling](#function-calling).
-
-To configure structured outputs you would define a JSON Schema and pass it to a query.
-
-This SDK supports multiple ways to define a schema; choose the one you prefer.
-
-<details>
-
-<summary>JSONSchemaDefinition.jsonSchema</summary>
-
-### Build a schema by specifying fields
-
-This definition accepts `JSONSchema` which is either `boolean` or `object` JSON Document.
-
-Instead of providing schema yourself you can build one in a type-safe manner using initializers that accept `[JSONSchemaField]`, as shown in the example below.
-
-While this method of defining a schema is direct, it can be verbose. For alternative ways to define a schema, see the options below.
-
-### Example
-
-```swift
-let query = CreateModelResponseQuery(
-    input: .textInput("Return structured output"),
-    model: .gpt4_o,
-    text: .jsonSchema(.init(
-        name: "research_paper_extraction",
-        schema: .jsonSchema(.init(
-            .type(.object),
-            .properties([
-                "title": Schema.buildBlock(
-                    .type(.string)
-                ),
-                "authors": .init(
-                    .type(.array),
-                    .items(.init(
-                        .type(.string)
-                    ))
-                ),
-                "abstract": .init(
-                    .type(.string)
-                ),
-                "keywords": .init(
-                    .type(.array),
-                    .items(.init(
-                        .type(.string))
-                    )
-                )
-            ]),
-            .required(["title, authors, abstract, keywords"]),
-            .additionalProperties(.boolean(false))
-        )),
-        description: "desc",
-        strict: false
-    ))
-)
-
-let response = try await openAIClient.responses.createResponse(query: query)
-for output in response.output {
-    switch output {
-    case .outputMessage(let message):
-        for content in message.content {
-            switch content {
-            case .OutputTextContent(let textContent):
-                print("json output structured by the schema: ", textContent.text)
-            case .RefusalContent(let refusal):
-                // Handle refusal
-                break
-            }
-        }
-    default:
-        // Handle other OutputItems
-        break
-    }
-}
-```
-
-</details>
-
-<details>
-
-<summary>JSONSchemaDefinition.derivedJsonSchema</summary>
-
-### Implement a type that describes a schema
-
-Use [Pydantic](https://docs.pydantic.dev/latest/) or [Zod](https://zod.dev) fashion to define schemas.
-
-- Use the `derivedJsonSchema(_ type:)` response format when creating a `ChatQuery` or `CreateModelResponseQuery`
-- Provide a type that conforms to `JSONSchemaConvertible` and generates an instance as an example
-- Make sure all enum types within the provided type conform to `JSONSchemaEnumConvertible` and generate an array of names for all cases
-
-### Example
-
-```swift
-struct MovieInfo: JSONSchemaConvertible {
-    
-    let title: String
-    let director: String
-    let release: Date
-    let genres: [MovieGenre]
-    let cast: [String]
-    
-    static let example: Self = {
-        .init(
-            title: "Earth",
-            director: "Alexander Dovzhenko",
-            release: Calendar.current.date(from: DateComponents(year: 1930, month: 4, day: 1))!,
-            genres: [.drama],
-            cast: ["Stepan Shkurat", "Semyon Svashenko", "Yuliya Solntseva"]
-        )
-    }()
-}
-enum MovieGenre: String, Codable, JSONSchemaEnumConvertible {
-    case action, drama, comedy, scifi
-    
-    var caseNames: [String] { Self.allCases.map { $0.rawValue } }
-}
-let query = ChatQuery(
-    messages: [
-        .system(
-            .init(content: .textContent("Best Picture winner at the 2011 Oscars"))
-        )
-    ],
-    model: .gpt4_o,
-    responseFormat: .jsonSchema(
-        .init(
-            name: "movie-info",
-            description: nil,
-            schema: .derivedJsonSchema(MovieInfo.self),
-            strict: true
-        )
-    )
-)
-let result = try await openAI.chats(query: query)
-```
-
-</details>
-
-<details>
-
-<summary>JSONSchemaDefinition.dynamicJsonSchema</summary>
-
-### Define a schema with an instance of any type that conforms to Encodable
-
-Define your JSON schema using simple Dictionaries, or specify JSON schema with a library like https://github.com/kevinhermawan/swift-json-schema.
-
-### Example
-
-```swift
-struct AnyEncodable: Encodable {
-    private let _encode: (Encoder) throws -> Void
-    public init<T: Encodable>(_ wrapped: T) {
-        _encode = wrapped.encode
-    }
-    func encode(to encoder: Encoder) throws {
-        try _encode(encoder)
-    }
-}
-let schema = [
-    "type": AnyEncodable("object"),
-    "properties": AnyEncodable([
-        "title": AnyEncodable([
-            "type": "string"
-        ]),
-        "director": AnyEncodable([
-            "type": "string"
-        ]),
-        "release": AnyEncodable([
-            "type": "string"
-        ]),
-        "genres": AnyEncodable([
-            "type": AnyEncodable("array"),
-            "items": AnyEncodable([
-                "type": AnyEncodable("string"),
-                "enum": AnyEncodable(["action", "drama", "comedy", "scifi"])
-            ])
-        ]),
-        "cast": AnyEncodable([
-            "type": AnyEncodable("array"),
-            "items": AnyEncodable([
-                "type": "string"
-            ])
-        ])
-    ]),
-    "additionalProperties": AnyEncodable(false)
-]
-let query = ChatQuery(
-    messages: [.system(.init(content: .textContent("Return a structured response.")))],
-    model: .gpt4_o,
-    responseFormat: .jsonSchema(.init(name: "movie-info", schema: .dynamicJsonSchema(schema)))
-)
-let result = try await openAI.chats(query: query)
-```
-
-</details>
-
-Review [Structured Output Documentation](https://platform.openai.com/docs/guides/structured-outputs) for more info.
-
-## Tools
-### Remote MCP (Model Context Protocol)
-
-The Model Context Protocol (MCP) enables AI models to securely connect to external data sources and tools through standardized server connections. This OpenAI Swift library supports MCP integration, allowing you to extend model capabilities with remote tools and services.
-
-You can use the [MCP Swift library](https://github.com/modelcontextprotocol/swift-sdk) to connect to MCP servers and discover available tools, then integrate those tools with OpenAI's chat completions.
-
-#### MCP Tool Integration
-
-**Request**
-
-```swift
-// Create an MCP tool for connecting to a remote server
-let mcpTool = Tool.mcpTool(
-    .init(
-        _type: .mcp,
-        serverLabel: "GitHub_MCP_Server",
-        serverUrl: "https://api.githubcopilot.com/mcp/",
-        headers: .init(additionalProperties: [
-            "Authorization": "Bearer YOUR_TOKEN_HERE"
-        ]),
-        allowedTools: .case1(["search_repositories", "get_file_contents"]),
-        requireApproval: .case2(.always)
-    )
-)
-
-let query = ChatQuery(
-    messages: [
-        .user(.init(content: .string("Search for Swift repositories on GitHub")))
-    ],
-    model: .gpt4_o,
-    tools: [mcpTool]
-)
-```
-
-**MCP Tool Properties**
-
-- `serverLabel`: A unique identifier for the MCP server
-- `serverUrl`: The URL endpoint of the MCP server
-- `headers`: Authentication headers and other HTTP headers required by the server
-- `allowedTools`: Specific tools to enable from the server (optional - if not specified, all tools are available)
-- `requireApproval`: Whether tool calls require user approval (`.always`, `.never`, or conditional)
-
-**Example with MCP Swift Library**
-
-```swift
-import MCP
-import OpenAI
-
-// Connect to MCP server using the MCP Swift library
-let mcpClient = MCP.Client(name: "MyApp", version: "1.0.0")
-
-let transport = HTTPClientTransport(
-    endpoint: URL(string: "https://api.githubcopilot.com/mcp/")!,
-    configuration: URLSessionConfiguration.default
-)
-
-let result = try await mcpClient.connect(transport: transport)
-let toolsResponse = try await mcpClient.listTools()
-
-// Create OpenAI MCP tool with discovered tools
-let enabledToolNames = toolsResponse.tools.map { $0.name }
-let mcpTool = Tool.mcpTool(
-    .init(
-        _type: .mcp,
-        serverLabel: "GitHub_MCP_Server",
-        serverUrl: "https://api.githubcopilot.com/mcp/",
-        headers: .init(additionalProperties: authHeaders),
-        allowedTools: .case1(enabledToolNames),
-        requireApproval: .case2(.always)
-    )
-)
-
-// Use in chat completion
-let query = ChatQuery(
-    messages: [.user(.init(content: .string("Help me search GitHub repositories")))],
-    model: .gpt4_o,
-    tools: [mcpTool]
-)
-
-let chatResult = try await openAI.chats(query: query)
-```
-
-**MCP Tool Call Handling**
-
-When using MCP tools, the model may generate tool calls that are executed on the remote MCP server. Handle MCP-specific output items in your response processing:
-
-```swift
-// Handle MCP tool calls in streaming responses
-for try await result in openAI.chatsStream(query: query) {
-    for choice in result.choices {
-        if let outputItem = choice.delta.content {
-            switch outputItem {
-            case .mcpToolCall(let mcpCall):
-                print("MCP tool call: \(mcpCall.name)")
-                if let output = mcpCall.output {
-                    print("Result: \(output)")
-                }
-            case .mcpApprovalRequest(let approvalRequest):
-                // Handle approval request if requireApproval is enabled
-                print("MCP tool requires approval: \(approvalRequest)")
-            default:
-                // Handle other output types
-                break
-            }
-        }
-    }
-}
-```
-
-## Specialized models
 
 ### Embeddings
 
@@ -1113,57 +717,12 @@ let result = try await openAI.embeddings(query: query)
 
 Review [Embeddings Documentation](https://platform.openai.com/docs/api-reference/embeddings) for more info.
 
-### Moderations 
-
-Given a input text, outputs if the model classifies it as violating OpenAI's content policy.
-
-**Request**
-
-```swift
-public struct ModerationsQuery: Codable {
-    
-    public let input: String
-    public let model: Model?
-}    
-```
-
-**Response**
-
-```swift
-public struct ModerationsResult: Codable, Equatable {
-
-    public let id: String
-    public let model: Model
-    public let results: [CategoryResult]
-}
-```
-
-**Example**
-
-```swift
-let query = ModerationsQuery(input: "I want to kill them.")
-openAI.moderations(query: query) { result in
-  //Handle result here
-}
-//or
-let result = try await openAI.moderations(query: query)
-```
-
-Review [Moderations Documentation](https://platform.openai.com/docs/api-reference/moderations) for more info.
-
-## Other APIs
-
 ### Models 
 
 Models are represented as a typealias `typealias Model = String`.
 
 ```swift
 public extension Model {
-    static let gpt5 = "gpt-5"
-    static let gpt5_mini = "gpt-5-mini"
-    static let gpt5_nano = "gpt-5-nano"
-    static let gpt5_chat = "gpt-5-chat"
-    
     static let gpt4_1 = "gpt-4.1"
     static let gpt4_1_mini = "gpt-4.1-mini"
     static let gpt4_1_nano = "gpt-4.1-nano"
@@ -1298,6 +857,44 @@ let result = try await openAI.model(query: query)
 
 Review [Models Documentation](https://platform.openai.com/docs/api-reference/models) for more info.
 
+### Moderations 
+
+Given a input text, outputs if the model classifies it as violating OpenAI's content policy.
+
+**Request**
+
+```swift
+public struct ModerationsQuery: Codable {
+    
+    public let input: String
+    public let model: Model?
+}    
+```
+
+**Response**
+
+```swift
+public struct ModerationsResult: Codable, Equatable {
+
+    public let id: String
+    public let model: Model
+    public let results: [CategoryResult]
+}
+```
+
+**Example**
+
+```swift
+let query = ModerationsQuery(input: "I want to kill them.")
+openAI.moderations(query: query) { result in
+  //Handle result here
+}
+//or
+let result = try await openAI.moderations(query: query)
+```
+
+Review [Moderations Documentation](https://platform.openai.com/docs/api-reference/moderations) for more info.
+
 ### Utilities
 
 The component comes with several handy utility functions to work with the vectors.
@@ -1339,11 +936,26 @@ print(similarity) //0.9510201910206734
 
 Read more about Cosine Similarity [here](https://en.wikipedia.org/wiki/Cosine_similarity).
 
-## Assistants
+### Combine Extensions
+
+The library contains built-in [Combine](https://developer.apple.com/documentation/combine) extensions.
+
+```swift
+func images(query: ImagesQuery) -> AnyPublisher<ImagesResult, Error>
+func embeddings(query: EmbeddingsQuery) -> AnyPublisher<EmbeddingsResult, Error>
+func chats(query: ChatQuery) -> AnyPublisher<ChatResult, Error>
+func model(query: ModelQuery) -> AnyPublisher<ModelResult, Error>
+func models() -> AnyPublisher<ModelsResult, Error>
+func moderations(query: ModerationsQuery) -> AnyPublisher<ModerationsResult, Error>
+func audioTranscriptions(query: AudioTranscriptionQuery) -> AnyPublisher<AudioTranscriptionResult, Error>
+func audioTranslations(query: AudioTranslationQuery) -> AnyPublisher<AudioTranslationResult, Error>
+```
+
+### Assistants
 
 Review [Assistants Documentation](https://platform.openai.com/docs/api-reference/assistants) for more info.
 
-### Create Assistant
+#### Create Assistant
 
 Example: Create Assistant
 ```swift
@@ -1353,7 +965,7 @@ openAI.assistantCreate(query: query) { result in
 }
 ```
 
-### Modify Assistant
+#### Modify Assistant
 
 Example: Modify Assistant
 ```swift
@@ -1363,7 +975,7 @@ openAI.assistantModify(query: query, assistantId: "asst_1234") { result in
 }
 ```
 
-### List Assistants
+#### List Assistants
 
 Example: List Assistants
 ```swift
@@ -1372,11 +984,11 @@ openAI.assistants() { result in
 }
 ```
 
-### Threads
+#### Threads
 
 Review [Threads Documentation](https://platform.openai.com/docs/api-reference/threads) for more info.
 
-#### Create Thread
+##### Create Thread
 
 Example: Create Thread
 ```swift
@@ -1386,7 +998,7 @@ openAI.threads(query: threadsQuery) { result in
 }
 ```
 
-#### Create and Run Thread
+##### Create and Run Thread
 
 Example: Create and Run Thread
 ```swift
@@ -1397,7 +1009,7 @@ openAI.threadRun(query: threadRunQuery) { result in
 }
 ```
 
-#### Get Threads Messages
+##### Get Threads Messages
 
 Review [Messages Documentation](https://platform.openai.com/docs/api-reference/messages) for more info.
 
@@ -1408,7 +1020,7 @@ openAI.threadsMessages(threadId: currentThreadId) { result in
 }
 ```
 
-#### Add Message to Thread
+##### Add Message to Thread
 
 Example: Add Message to Thread
 ```swift
@@ -1418,11 +1030,11 @@ openAI.threadsAddMessage(threadId: currentThreadId, query: query) { result in
 }
 ```
 
-### Runs
+#### Runs
 
 Review [Runs Documentation](https://platform.openai.com/docs/api-reference/runs) for more info.
 
-#### Create Run
+##### Create Run
 
 Example: Create Run
 ```swift
@@ -1432,7 +1044,7 @@ openAI.runs(threadId: threadsResult.id, query: runsQuery) { result in
 }
 ```
 
-#### Retrieve Run
+##### Retrieve Run
 
 Example: Retrieve Run
 ```swift
@@ -1441,7 +1053,7 @@ openAI.runRetrieve(threadId: currentThreadId, runId: currentRunId) { result in
 }
 ```
 
-#### Retrieve Run Steps
+##### Retrieve Run Steps
 
 Example: Retrieve Run Steps
 ```swift
@@ -1450,7 +1062,7 @@ openAI.runRetrieveSteps(threadId: currentThreadId, runId: currentRunId) { result
 }
 ```
 
-#### Submit Tool Outputs for Run
+##### Submit Tool Outputs for Run
 
 Example: Submit Tool Outputs for Run
 ```swift
@@ -1461,11 +1073,11 @@ openAI.runSubmitToolOutputs(threadId: currentThreadId, runId: currentRunId, quer
 }
 ```
 
-### Files
+#### Files
 
 Review [Files Documentation](https://platform.openai.com/docs/api-reference/files) for more info.
 
-#### Upload file
+##### Upload file
 
 Example: Upload file
 ```swift
@@ -1475,21 +1087,47 @@ openAI.files(query: query) { result in
 }
 ```
 
+### Cancelling requests
+#### Closure based API
+When you call any of the closure-based API methods, it returns discardable `CancellableRequest`. Hold a reference to it to be able to cancel the request later.
+```swift
+let cancellableRequest = object.chats(query: query, completion: { _ in })
+cancellableReques
+```
+
+#### Swift Concurrency
+For Swift Concurrency calls, you can simply cancel the calling task, and corresponding `URLSessionDataTask` would get cancelled automatically.
+```swift
+let task = Task {
+    do {
+        let chatResult = try await openAIClient.chats(query: .init(messages: [], model: "asd"))
+    } catch {
+        // Handle cancellation or error
+    }
+}
+            
+task.cancel()
+```
+
+#### Combine
+In Combine, use a default cancellation mechanism. Just discard the reference to a subscription, or call `cancel()` on it.
+
+```swift
+let subscription = openAIClient
+    .images(query: query)
+    .sink(receiveCompletion: { completion in }, receiveValue: { imagesResult in })
+    
+subscription.cancel()
+```
+
 ## Support for other providers
-
-> TL;DR Use `.relaxed` parsing option on Configuration
-
 This SDK has a limited support for other providers like Gemini, Perplexity etc.
 
 The top priority of this SDK is OpenAI, and the main rule is for all the main types to be fully compatible with [OpenAI's API Reference](https://platform.openai.com/docs/api-reference/introduction). If it says a field should be optional, it must be optional in main subset of Query/Result types of this SDK. The same goes for other info declared in the reference, like default values.
 
 That said we still want to give a support for other providers.
 
-### Option 1: Use `.relaxed` parsing option
-`.relaxed` parsing option handles both missing and additional key/values in responses. It should be sufficient for most use-cases. Let us know if it doesn't cover any case you need.
-
-### Option 2: Specify parsing options separately
-#### Handle missing keys in responses
+### Handling missing keys in responses with Parsing Options
 Some providers return responses that don't completely satisfy OpenAI's scheme. Like, Gemini chat completion response ommits `id` field which is a required field in OpenAI's API Reference.
 
 In such case use `fillRequiredFieldIfKeyNotFound` Parsing Option, like this:
@@ -1497,13 +1135,9 @@ In such case use `fillRequiredFieldIfKeyNotFound` Parsing Option, like this:
 let configuration = OpenAI.Configuration(token: "", parsingOptions: .fillRequiredFieldIfKeyNotFound)
 ```
 
-#### Handle missing values in responses
-Some fields are required to be present (non-optional) by OpenAI, but other providers may return `null` for them.
 
-Use `.fillRequiredFieldIfValueNotFound` to handle missing values
-
-#### What if a provider returns additional fields?
-Currently we handle such cases by simply adding additional fields to main model set. This is possible because optional fields wouldn't break or conflict with OpenAI's scheme. At the moment, such additional fields are added:
+### What if a provider returns additional fields?
+Currently we handle such cases by simply adding additional fields to main model set. This is possible because optional fields wouldn't break or conflict with OpenAI's scheme. At the moment, such additional fields are added.
 
 `ChatResult`
 
@@ -1513,6 +1147,7 @@ Currently we handle such cases by simply adding additional fields to main model 
 
 * `reasoningContent` [Grok](https://docs.x.ai/docs/api-reference#chat-completions), [DeepSeek](https://api-docs.deepseek.com/api/create-chat-completion#responses)
 * `reasoning` [OpenRouter](https://openrouter.ai/docs/use-cases/reasoning-tokens#basic-usage-with-reasoning-tokens)
+
 
 ## Example Project
 

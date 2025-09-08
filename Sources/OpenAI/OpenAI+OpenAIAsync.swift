@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 extension OpenAI: OpenAIAsync {
     public func images(query: ImagesQuery) async throws -> ImagesResult {
         try await performRequestAsync(
@@ -39,8 +40,23 @@ extension OpenAI: OpenAIAsync {
     }
     
     public func chatsStream(query: ChatQuery) -> AsyncThrowingStream<ChatStreamResult, Error> {
-        makeAsyncStream { onResult, completion in
-            chatsStream(query: query, onResult: onResult, completion: completion)
+        return AsyncThrowingStream { continuation in
+            let cancellableRequest = chatsStream(query: query)  { result in
+                continuation.yield(with: result)
+            } completion: { error in
+                continuation.finish(throwing: error)
+            }
+            
+            continuation.onTermination = { termination in
+                switch termination {
+                case .cancelled:
+                    cancellableRequest.cancelRequest()
+                case .finished:
+                    break
+                @unknown default:
+                    break
+                }
+            }
         }
     }
     
@@ -71,8 +87,23 @@ extension OpenAI: OpenAIAsync {
     public func audioCreateSpeechStream(
         query: AudioSpeechQuery
     ) -> AsyncThrowingStream<AudioSpeechResult, Error> {
-        makeAsyncStream { onResult, completion in
-            audioCreateSpeechStream(query: query, onResult: onResult, completion: completion)
+        return AsyncThrowingStream { continuation in
+            let cancellableRequest = audioCreateSpeechStream(query: query)  { result in
+                continuation.yield(with: result)
+            } completion: { error in
+                continuation.finish(throwing: error)
+            }
+            
+            continuation.onTermination = { termination in
+                switch termination {
+                case .cancelled:
+                    cancellableRequest.cancelRequest()
+                case .finished:
+                    break
+                @unknown default:
+                    break
+                }
+            }
         }
     }
     
@@ -80,24 +111,6 @@ extension OpenAI: OpenAIAsync {
         try await performRequestAsync(
             request: makeAudioTranscriptionsRequest(query: query)
         )
-    }
-    
-    public func audioTranscriptionsVerbose(query: AudioTranscriptionQuery) async throws -> AudioTranscriptionVerboseResult {
-        guard query.responseFormat == .verboseJson else {
-            throw AudioTranscriptionError.invalidQuery(expectedResponseFormat: .verboseJson)
-        }
-        
-        return try await performRequestAsync(
-            request: makeAudioTranscriptionsRequest(query: query)
-        )
-    }
-    
-    public func audioTranscriptionStream(
-        query: AudioTranscriptionQuery
-    ) -> AsyncThrowingStream<AudioTranscriptionStreamResult, Error> {
-        makeAsyncStream { onResult, completion in
-            audioTranscriptionStream(query: query, onResult: onResult, completion: completion)
-        }
     }
     
     public func audioTranslations(query: AudioTranslationQuery) async throws -> AudioTranslationResult {
@@ -193,36 +206,82 @@ extension OpenAI: OpenAIAsync {
     }
     
     func performRequestAsync<ResultType: Codable & Sendable>(request: any URLRequestBuildable) async throws -> ResultType {
-        try await asyncClient.performRequest(request: request)
+        let urlRequest = try request.build(configuration: configuration)
+        let interceptedRequest = middlewares.reduce(urlRequest) { current, middleware in
+            middleware.intercept(request: current)
+        }
+
+        if #available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *) {
+            let (data, response) = try await session.data(for: interceptedRequest, delegate: nil)
+            let (_, interceptedData) = self.middlewares.reduce((response, data)) { current, middleware in
+                middleware.intercept(response: current.response, request: urlRequest, data: current.data)
+            }
+            let decoder = JSONDecoder()
+            decoder.userInfo[.parsingOptions] = configuration.parsingOptions
+            do {
+                return try decoder.decode(ResultType.self, from: interceptedData ?? data)
+            } catch {
+                if let decoded = JSONResponseErrorDecoder(decoder: decoder).decodeErrorResponse(data: interceptedData ?? data) {
+                    throw decoded
+                } else {
+                    throw error
+                }
+            }
+        } else {
+            let dataTaskStore = URLSessionDataTaskStore()
+            return try await withTaskCancellationHandler {
+                return try await withCheckedThrowingContinuation { continuation in
+                    let dataTask = self.makeDataTask(forRequest: interceptedRequest) { (result: Result<ResultType, Error>) in
+                        continuation.resume(with: result)
+                    }
+                    
+                    dataTask.resume()
+                    
+                    Task {
+                        await dataTaskStore.setDataTask(dataTask)
+                    }
+                }
+            } onCancel: {
+                Task {
+                    await dataTaskStore.getDataTask()?.cancel()
+                }
+            }
+        }
     }
     
     func performSpeechRequestAsync(request: any URLRequestBuildable) async throws -> AudioSpeechResult {
-        try await asyncClient.performSpeechRequest(request: request)
-    }
-    
-    func makeAsyncStream<ResultType: Codable & Sendable>(
-        byWrapping call: (_ onResult: @escaping @Sendable (Result<ResultType, Error>) -> Void, _ completion: (@Sendable (Error?) -> Void)?) -> CancellableRequest
-    ) -> AsyncThrowingStream<ResultType, Error> {
-        return AsyncThrowingStream { continuation in
-
-            let resultClosure: @Sendable (Result<ResultType, Error>) -> Void = {
-                continuation.yield(with: $0)
+        let urlRequest = try request.build(configuration: configuration)
+        let interceptedRequest = middlewares.reduce(urlRequest) { current, middleware in
+            middleware.intercept(request: current)
+        }
+        if #available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *) {
+            let (data, response) = try await session.data(for: interceptedRequest, delegate: nil)
+            let (_, interceptedData) = self.middlewares.reduce((response, data)) { current, middleware in
+                middleware.intercept(response: current.response, request: urlRequest, data: current.data)
             }
-            
-            let completionClosure: @Sendable (Error?) -> Void = {
-                continuation.finish(throwing: $0)
-            }
-            
-            let cancellableRequest = call(resultClosure, completionClosure)
-            
-            continuation.onTermination = { termination in
-                switch termination {
-                case .cancelled:
-                    cancellableRequest.cancelRequest()
-                case .finished:
-                    break
-                @unknown default:
-                    break
+            return .init(audio: interceptedData ?? data)
+        } else {
+            let dataTaskStore = URLSessionDataTaskStore()
+            return try await withTaskCancellationHandler {
+                return try await withCheckedThrowingContinuation { continuation in
+                    let dataTask = self.makeRawResponseDataTask(forRequest: interceptedRequest) { result in
+                        switch result {
+                        case .success(let success):
+                            continuation.resume(returning: .init(audio: success))
+                        case .failure(let failure):
+                            continuation.resume(throwing: failure)
+                        }
+                    }
+                    
+                    dataTask.resume()
+                    
+                    Task {
+                        await dataTaskStore.setDataTask(dataTask)
+                    }
+                }
+            } onCancel: {
+                Task {
+                    await dataTaskStore.getDataTask()?.cancel()
                 }
             }
         }

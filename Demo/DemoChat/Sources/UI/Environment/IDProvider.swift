@@ -7,8 +7,17 @@
 
 import SwiftUI
 
+private struct IDProviderKey: EnvironmentKey {
+    static let defaultValue: () -> String = {
+        UUID().uuidString
+    }
+}
+
 extension EnvironmentValues {
-    @Entry public var idProviderValue: () -> String = { UUID().uuidString }
+    public var idProviderValue: () -> String {
+        get { self[IDProviderKey.self] }
+        set { self[IDProviderKey.self] = newValue }
+    }
 }
 
 extension View {

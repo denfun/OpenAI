@@ -7,7 +7,8 @@
 
 import Foundation
 
-public protocol OpenAIAsync: Sendable {
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+public protocol OpenAIAsync {
     func images(query: ImagesQuery) async throws -> ImagesResult
     func imageEdits(query: ImageEditsQuery) async throws -> ImagesResult
     func imageVariations(query: ImageVariationsQuery) async throws -> ImagesResult
@@ -19,8 +20,6 @@ public protocol OpenAIAsync: Sendable {
     func moderations(query: ModerationsQuery) async throws -> ModerationsResult
     func audioCreateSpeech(query: AudioSpeechQuery) async throws -> AudioSpeechResult
     func audioTranscriptions(query: AudioTranscriptionQuery) async throws -> AudioTranscriptionResult
-    func audioTranscriptionsVerbose(query: AudioTranscriptionQuery) async throws -> AudioTranscriptionVerboseResult
-    func audioTranscriptionStream(query: AudioTranscriptionQuery) -> AsyncThrowingStream<AudioTranscriptionStreamResult, Error>
     func audioTranslations(query: AudioTranslationQuery) async throws -> AudioTranslationResult
     func assistants() async throws -> AssistantsResult
     func assistants(after: String?) async throws -> AssistantsResult

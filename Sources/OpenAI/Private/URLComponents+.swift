@@ -12,17 +12,36 @@ import FoundationNetworking
 
 extension URLComponents {
     static func components(perConfiguration configuration: OpenAI.Configuration, path: String) -> URLComponents {
-        var components = URLComponents()
+        /* var components = URLComponents()
         components.scheme = configuration.scheme
         components.host = configuration.host
-        components.port = configuration.port
+        //components.port = configuration.port
         
         let pathComponents = [configuration.basePath, path]
             .filter { !$0.isEmpty }
             .map { $0.trimmingCharacters(in: ["/"]) }
         
         components.path = "/" + pathComponents.joined(separator: "/")
+        return components */
+        
+        
+        var components = URLComponents()
+        components.scheme = configuration.scheme
+        
+        // 拆分 host 和路径部分
+        let hostParts = configuration.host.components(separatedBy: "/")
+        components.host = hostParts.first // 纯域名（如 "302.ai"）
+        
+        // 合并 basePath、host 的剩余路径和传入的 path
+        let hostPath = hostParts.dropFirst().joined(separator: "/") // "cn"（如果 host 是 "302.ai/cn"）
+        let pathComponents = [configuration.basePath, hostPath, path]
+            .filter { !$0.isEmpty }
+            .map { $0.trimmingCharacters(in: ["/"]) }
+        
+        components.path = "/" + pathComponents.joined(separator: "/")
         return components
+        
+        
     }
     
     var urlSafe: URL {

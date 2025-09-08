@@ -11,11 +11,12 @@ import Foundation
 import FoundationNetworking
 #endif
 
-protocol StreamingSessionFactory: Sendable {
+protocol StreamingSessionFactory {
     func makeServerSentEventsStreamingSession<ResultType: Codable & Sendable>(
         urlRequest: URLRequest,
         onReceiveContent: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, ResultType) -> Void,
         onProcessingError: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, Error) -> Void,
+//        onProcessingReasoning: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, ResultType) -> Void,
         onComplete: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, Error?) -> Void
     ) -> StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>
     
@@ -25,13 +26,6 @@ protocol StreamingSessionFactory: Sendable {
         onProcessingError: @Sendable @escaping (StreamingSession<AudioSpeechStreamInterpreter>, Error) -> Void,
         onComplete: @Sendable @escaping (StreamingSession<AudioSpeechStreamInterpreter>, Error?) -> Void
     ) -> StreamingSession<AudioSpeechStreamInterpreter>
-    
-    func makeModelResponseStreamingSession(
-        urlRequest: URLRequest,
-        onReceiveContent: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, ResponseStreamEvent) -> Void,
-        onProcessingError: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, Error) -> Void,
-        onComplete: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, Error?) -> Void
-    ) -> StreamingSession<ModelResponseEventsStreamInterpreter>
 }
 
 struct ImplicitURLSessionStreamingSessionFactory: StreamingSessionFactory {
@@ -43,6 +37,7 @@ struct ImplicitURLSessionStreamingSessionFactory: StreamingSessionFactory {
         urlRequest: URLRequest,
         onReceiveContent: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, ResultType) -> Void,
         onProcessingError: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, any Error) -> Void,
+//        onProcessingReasoning: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, ResultType) -> Void,
         onComplete: @Sendable @escaping (StreamingSession<ServerSentEventsStreamInterpreter<ResultType>>, (any Error)?) -> Void
     ) -> StreamingSession<ServerSentEventsStreamInterpreter<ResultType>> where ResultType : Decodable, ResultType : Encodable, ResultType : Sendable {
         .init(
@@ -52,6 +47,7 @@ struct ImplicitURLSessionStreamingSessionFactory: StreamingSessionFactory {
             middlewares: middlewares,
             onReceiveContent: onReceiveContent,
             onProcessingError: onProcessingError,
+//            onProcessingReasoning: onProcessingReasoning,
             onComplete: onComplete
         )
     }
@@ -62,23 +58,6 @@ struct ImplicitURLSessionStreamingSessionFactory: StreamingSessionFactory {
         onProcessingError: @Sendable @escaping (StreamingSession<AudioSpeechStreamInterpreter>, any Error) -> Void,
         onComplete: @Sendable @escaping (StreamingSession<AudioSpeechStreamInterpreter>, (any Error)?) -> Void
     ) -> StreamingSession<AudioSpeechStreamInterpreter> {
-        .init(
-            urlRequest: urlRequest,
-            interpreter: .init(),
-            sslDelegate: sslDelegate,
-            middlewares: middlewares,
-            onReceiveContent: onReceiveContent,
-            onProcessingError: onProcessingError,
-            onComplete: onComplete
-        )
-    }
-    
-    func makeModelResponseStreamingSession(
-        urlRequest: URLRequest,
-        onReceiveContent: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, ResponseStreamEvent) -> Void,
-        onProcessingError: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, any Error) -> Void,
-        onComplete: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, (any Error)?) -> Void
-    ) -> StreamingSession<ModelResponseEventsStreamInterpreter> {
         .init(
             urlRequest: urlRequest,
             interpreter: .init(),

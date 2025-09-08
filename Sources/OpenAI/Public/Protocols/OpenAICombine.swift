@@ -9,7 +9,8 @@
 import Foundation
 import Combine
 
-public protocol OpenAICombine: Sendable {
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
+public protocol OpenAICombine {
     func images(query: ImagesQuery) -> AnyPublisher<ImagesResult, Error>
     func imageEdits(query: ImageEditsQuery) -> AnyPublisher<ImagesResult, Error>
     func imageVariations(query: ImageVariationsQuery) -> AnyPublisher<ImagesResult, Error>

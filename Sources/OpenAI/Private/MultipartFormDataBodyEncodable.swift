@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol MultipartFormDataBodyEncodable: Sendable {
+protocol MultipartFormDataBodyEncodable {
     
     func encode(boundary: String) -> Data
 }

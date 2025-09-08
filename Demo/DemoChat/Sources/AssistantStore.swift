@@ -133,8 +133,8 @@ public final class AssistantStore: ObservableObject {
         }
     }
 
-    func createToolsArray(codeInterpreter: Bool, fileSearch: Bool, functions: [FunctionDeclaration]) -> [AssistantsTool] {
-        var tools = [AssistantsTool]()
+    func createToolsArray(codeInterpreter: Bool, fileSearch: Bool, functions: [FunctionDeclaration]) -> [Tool] {
+        var tools = [Tool]()
         if codeInterpreter {
             tools.append(.codeInterpreter)
         }

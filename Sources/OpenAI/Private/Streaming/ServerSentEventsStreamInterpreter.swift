@@ -62,17 +62,23 @@ final class ServerSentEventsStreamInterpreter <ResultType: Codable & Sendable>: 
             guard jsonContent != streamingCompletionMarker && !jsonContent.isEmpty else {
                 return
             }
+            
             guard let jsonData = jsonContent.data(using: .utf8) else {
                 onError?(StreamingError.unknownContent)
                 return
             }
-            
-            let decoder = JSONResponseDecoder(parsingOptions: parsingOptions)
+            let decoder = JSONDecoder()
+            decoder.userInfo[.parsingOptions] = parsingOptions
             do {
-                let object: ResultType = try decoder.decodeResponseData(jsonData)
+                let object = try decoder.decode(ResultType.self, from: jsonData)
                 onEventDispatched?(object)
             } catch {
-                onError?(error)
+                if let decoded = JSONResponseErrorDecoder(decoder: decoder).decodeErrorResponse(data: jsonData) {
+                    onError?(decoded)
+                    return
+                } else {
+                    onError?(error)
+                }
             }
         default:
             onError?(InterpeterError.unhandledStreamEventType(event.eventType))

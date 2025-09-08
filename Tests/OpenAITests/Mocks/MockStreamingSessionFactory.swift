@@ -12,7 +12,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-class MockStreamingSessionFactory: StreamingSessionFactory, @unchecked Sendable {
+class MockStreamingSessionFactory: StreamingSessionFactory {
     var urlSessionFactory = MockURLSessionFactory()
     var executionSerializer = NoDispatchExecutionSerializer()
     
@@ -53,25 +53,10 @@ class MockStreamingSessionFactory: StreamingSessionFactory, @unchecked Sendable 
             onComplete: onComplete
         )
     }
-    
-    func makeModelResponseStreamingSession(
-        urlRequest: URLRequest,
-        onReceiveContent: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, ResponseStreamEvent) -> Void,
-        onProcessingError: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, any Error) -> Void,
-        onComplete: @Sendable @escaping (StreamingSession<ModelResponseEventsStreamInterpreter>, (any Error)?) -> Void
-    ) -> StreamingSession<ModelResponseEventsStreamInterpreter> {
-        .init(
-            urlSessionFactory: urlSessionFactory,
-            urlRequest: urlRequest,
-            interpreter: .init(),
-            sslDelegate: nil,
-            middlewares: [],
-            executionSerializer: executionSerializer,
-            onReceiveContent: onReceiveContent,
-            onProcessingError: onProcessingError,
-            onComplete: onComplete
-        )
-    }
 }
 
-
+struct NoDispatchExecutionSerializer: ExecutionSerializer {
+    func dispatch(_ closure: @escaping () -> Void) {
+        closure()
+    }
+}

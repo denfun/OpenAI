@@ -14,8 +14,6 @@ struct ContentView: View {
     @ObservedObject var imageStore: ImageStore
     @ObservedObject var assistantStore: AssistantStore
     @ObservedObject var miscStore: MiscStore
-    @ObservedObject var responsesStore: ResponsesStore
-    @ObservedObject var mcpToolsStore: MCPToolsStore
     
     @State private var selectedTab = 0
     @Environment(\.idProviderValue) var idProvider
@@ -31,11 +29,14 @@ struct ContentView: View {
             }
             .tag(0)
 
-            ResponsesChatDetailView(
-                store: responsesStore
-            ).tabItem {
-                Label("Responses", systemImage: "message.circle")
-            }.tag(1)
+            AssistantsView(
+                store: chatStore,
+                assistantStore: assistantStore
+            )
+            .tabItem {
+                Label("Assistants", systemImage: "eyeglasses")
+            }
+            .tag(1)
 
             TranscribeView(
             )
@@ -52,21 +53,13 @@ struct ContentView: View {
             }
             .tag(3)
 
-            MCPToolsView(mcpStore: mcpToolsStore)
-            .tabItem {
-                Label("Github MCP", systemImage: "wrench.and.screwdriver")
-            }
-            .tag(4)
-
             MiscView(
-                store: miscStore,
-                chatStore: chatStore,
-                assistantStore: assistantStore
+                store: miscStore
             )
             .tabItem {
                 Label("Misc", systemImage: "ellipsis")
             }
-            .tag(5)
+            .tag(4)
         }
     }
 }

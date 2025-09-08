@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct EmbeddingsQuery: Codable, Sendable {
+public struct EmbeddingsQuery: Codable {
 
     /// Input text to embed, encoded as a string or array of tokens. To embed multiple inputs in a single request, pass an array of strings or array of token arrays. The input must not exceed the max input tokens for the model (8192 tokens for text-embedding-ada-002), cannot be an empty string, and any array must be 2048 dimensions or less.
     public let input: Self.Input
@@ -15,8 +15,6 @@ public struct EmbeddingsQuery: Codable, Sendable {
     /// https://platform.openai.com/docs/api-reference/models/list
     /// https://platform.openai.com/docs/models/overview
     public let model: Model
-    /// The number of dimensions the resulting output embeddings should have. Only supported in text-embedding-3 and later models.
-    public let dimensions: Int?
     /// The format to return the embeddings in. Can be either float or base64.
     /// https://pypi.org/project/pybase64/
     public let encodingFormat: Self.EncodingFormat?
@@ -27,18 +25,16 @@ public struct EmbeddingsQuery: Codable, Sendable {
     public init(
         input: Self.Input,
         model: Model,
-        dimensions: Int? = nil,
         encodingFormat: Self.EncodingFormat? = nil,
         user: String? = nil
     ) {
         self.input = input
         self.model = model
-        self.dimensions = dimensions
         self.encodingFormat = encodingFormat
         self.user = user
     }
 
-    public enum Input: Codable, Equatable, Sendable {
+    public enum Input: Codable, Equatable {
         case string(String)
         case stringList([String])
         case intList([Int])
@@ -75,15 +71,14 @@ public struct EmbeddingsQuery: Codable, Sendable {
         }
     }
 
-    public enum EncodingFormat: String, Codable, Sendable {
+    public enum EncodingFormat: String, Codable {
         case float
         case base64
     }
 
-    public enum CodingKeys: String, CodingKey, Sendable {
+    public enum CodingKeys: String, CodingKey {
         case input
         case model
-        case dimensions
         case encodingFormat = "encoding_format"
         case user
     }

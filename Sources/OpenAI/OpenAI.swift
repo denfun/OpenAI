@@ -10,9 +10,9 @@ import Foundation
 import FoundationNetworking
 #endif
 
-final public class OpenAI: OpenAIProtocol, @unchecked Sendable {
+final public class OpenAI: @unchecked Sendable {
 
-    public struct Configuration: Sendable {
+    public struct Configuration {
         
         /// OpenAI API token. See https://platform.openai.com/docs/api-reference/authentication
         ///
@@ -30,7 +30,8 @@ final public class OpenAI: OpenAIProtocol, @unchecked Sendable {
         /// Optional base path if you set up OpenAI API proxy on a custom path on your own host. Default is "/v1"
         public let basePath: String
 
-        public let port: Int
+        //public let port: Int
+        
         public let scheme: String
         
         /// Default request timeout
@@ -47,11 +48,11 @@ final public class OpenAI: OpenAIProtocol, @unchecked Sendable {
         
         public let parsingOptions: ParsingOptions
         
-        public init(token: String?, organizationIdentifier: String? = nil, host: String = "api.openai.com", port: Int = 443, scheme: String = "https", basePath: String = "/v1", timeoutInterval: TimeInterval = 60.0, customHeaders: [String: String] = [:], parsingOptions: ParsingOptions = []) {
+        public init(token: String?, organizationIdentifier: String? = nil, host: String = "api.openai.com", scheme: String = "https", basePath: String = "/v1", timeoutInterval: TimeInterval = 60.0, customHeaders: [String: String] = [:], parsingOptions: ParsingOptions = []) {
             self.token = token
             self.organizationIdentifier = organizationIdentifier
             self.host = host
-            self.port = port
+//            self.port = port
             self.scheme = scheme
             self.basePath = basePath
             self.timeoutInterval = timeoutInterval
@@ -60,13 +61,15 @@ final public class OpenAI: OpenAIProtocol, @unchecked Sendable {
         }
     }
     
-    let client: Client
-    let streamingClient: StreamingClient
-    let asyncClient: AsyncClient
-    let combineClient: CombineClient
+    let session: URLSessionProtocol
+    let middlewares: [OpenAIMiddleware]
+
+    private let streamingSessionFactory: StreamingSessionFactory
+    private let cancellablesFactory: CancellablesFactory
+    private let executionSerializer: ExecutionSerializer
+    private var streamingSessions: [NSObject: InvalidatableSession] = [:]
     
     public let configuration: Configuration
-    public let responses: ResponsesEndpointProtocol
 
     public convenience init(apiToken: String) {
         self.init(
@@ -115,50 +118,11 @@ final public class OpenAI: OpenAIProtocol, @unchecked Sendable {
         middlewares: [OpenAIMiddleware] = []
     ) {
         self.configuration = configuration
-        
-        let dataTaskFactory = DataTaskFactory(
-            session: session,
-            responseHandler: .init(middlewares: middlewares, configuration: configuration)
-        )
-        
-        self.client = .init(
-            configuration: configuration,
-            session: session,
-            middlewares: middlewares,
-            dataTaskFactory: dataTaskFactory,
-            cancellablesFactory: cancellablesFactory
-        )
-        
-        self.streamingClient = .init(
-            configuration: configuration,
-            streamingSessionFactory: streamingSessionFactory,
-            middlewares: middlewares,
-            cancellablesFactory: cancellablesFactory,
-            executionSerializer: executionSerializer
-        )
-        
-        self.asyncClient = .init(
-            configuration: configuration,
-            session: session,
-            middlewares: middlewares,
-            dataTaskFactory: dataTaskFactory,
-            responseHandler: .init(middlewares: middlewares, configuration: configuration)
-        )
-        
-        self.combineClient = .init(
-            configuration: configuration,
-            session: session,
-            middlewares: middlewares,
-            responseHandler: .init(middlewares: middlewares, configuration: configuration)
-        )
-        
-        self.responses = ResponsesEndpoint(
-            client: client,
-            streamingClient: streamingClient,
-            asyncClient: asyncClient,
-            combineClient: combineClient,
-            configuration: configuration
-        )
+        self.session = session
+        self.streamingSessionFactory = streamingSessionFactory
+        self.cancellablesFactory = cancellablesFactory
+        self.executionSerializer = executionSerializer
+        self.middlewares = middlewares
     }
     
     public func threadsAddMessage(
@@ -299,32 +263,13 @@ final public class OpenAI: OpenAIProtocol, @unchecked Sendable {
         performRequest(request: makeModelsRequest(), completion: completion)
     }
     
+    @available(iOS 13.0, *)
     public func moderations(query: ModerationsQuery, completion: @escaping @Sendable (Result<ModerationsResult, Error>) -> Void) -> CancellableRequest {
         performRequest(request: makeModerationsRequest(query: query), completion: completion)
     }
     
     public func audioTranscriptions(query: AudioTranscriptionQuery, completion: @escaping @Sendable (Result<AudioTranscriptionResult, Error>) -> Void) -> CancellableRequest {
         performRequest(request: makeAudioTranscriptionsRequest(query: query), completion: completion)
-    }
-    
-    public func audioTranscriptionsVerbose(
-        query: AudioTranscriptionQuery,
-        completion: @escaping @Sendable (Result<AudioTranscriptionVerboseResult, Error>) -> Void
-    ) -> CancellableRequest {
-        guard query.responseFormat == .verboseJson else {
-            completion(.failure(AudioTranscriptionError.invalidQuery(expectedResponseFormat: .verboseJson)))
-            return NoOpCancellableRequest()
-        }
-        
-        return performRequest(request: makeAudioTranscriptionsRequest(query: query), completion: completion)
-    }
-    
-    public func audioTranscriptionStream(query: AudioTranscriptionQuery, onResult: @escaping @Sendable (Result<AudioTranscriptionStreamResult, Error>) -> Void, completion: (@Sendable (Error?) -> Void)?) -> CancellableRequest {
-        performStreamingRequest(
-            request: makeAudioTranscriptionsRequest(query: query.makeStreamable()),
-            onResult: onResult,
-            completion: completion
-        )
     }
     
     public func audioTranslations(query: AudioTranslationQuery, completion: @escaping @Sendable (Result<AudioTranslationResult, Error>) -> Void) -> CancellableRequest {
@@ -345,11 +290,19 @@ final public class OpenAI: OpenAIProtocol, @unchecked Sendable {
 }
 
 extension OpenAI {
-    func performRequest<ResultType: Codable>(
-        request: any URLRequestBuildable,
-        completion: @escaping @Sendable (Result<ResultType, Error>) -> Void
-    ) -> CancellableRequest {
-        client.performRequest(request: request, completion: completion)
+    func performRequest<ResultType: Codable>(request: any URLRequestBuildable, completion: @escaping @Sendable (Result<ResultType, Error>) -> Void) -> CancellableRequest {
+        do {
+            let urlRequest = try request.build(configuration: configuration)
+            let interceptedRequest = middlewares.reduce(urlRequest) { current, middleware in
+                middleware.intercept(request: current)
+            }
+            let task = makeDataTask(forRequest: interceptedRequest, completion: completion)
+            task.resume()
+            return cancellablesFactory.makeTaskCanceller(task: task)
+        } catch {
+            completion(.failure(error))
+            return NoOpCancellableRequest()
+        }
     }
     
     func performStreamingRequest<ResultType: Codable & Sendable>(
@@ -357,11 +310,56 @@ extension OpenAI {
         onResult: @escaping @Sendable (Result<ResultType, Error>) -> Void,
         completion: (@Sendable (Error?) -> Void)?
     ) -> CancellableRequest {
-        streamingClient.performStreamingRequest(request: request, onResult: onResult, completion: completion)
+        do {
+            let urlRequest = try request.build(configuration: configuration)
+            let interceptedRequest = middlewares.reduce(urlRequest) { current, middleware in
+                middleware.intercept(request: current)
+            }
+             
+            let session = streamingSessionFactory.makeServerSentEventsStreamingSession(
+                urlRequest: interceptedRequest
+            ) { _, object in
+                onResult(.success(object))
+            } onProcessingError: { _, error in
+                onResult(.failure(error))
+            } onComplete: { [weak self] session, error in
+                completion?(error)
+                self?.invalidateSession(session)
+            }
+            
+            return runSession(session)
+        } catch {
+            completion?(error)
+            return NoOpCancellableRequest()
+        }
     }
     
     func performSpeechRequest(request: any URLRequestBuildable, completion: @escaping @Sendable (Result<AudioSpeechResult, Error>) -> Void) -> CancellableRequest {
-        client.performSpeechRequest(request: request, completion: completion)
+        do {
+            let urlRequest = try request.build(configuration: configuration)
+            let interceptedRequest = middlewares.reduce(urlRequest) { current, middleware in
+                middleware.intercept(request: current)
+            }
+
+            let task = session.dataTask(with: interceptedRequest) { data, response, error in
+                if let error {
+                    return completion(.failure(error))
+                }
+                let (_, data) = self.middlewares.reduce((response, data)) { current, middleware in
+                    middleware.intercept(response: current.response, request: urlRequest, data: current.data)
+                }
+                guard let data else {
+                    return completion(.failure(OpenAIError.emptyData))
+                }
+                
+                completion(.success(AudioSpeechResult(audio: data)))
+            }
+            task.resume()
+            return cancellablesFactory.makeTaskCanceller(task: task)
+        } catch {
+            completion(.failure(error))
+            return NoOpCancellableRequest()
+        }
     }
     
     func performSpeechStreamingRequest(
@@ -369,7 +367,90 @@ extension OpenAI {
         onResult: @escaping @Sendable (Result<AudioSpeechResult, Error>) -> Void,
         completion: (@Sendable (Error?) -> Void)?
     ) -> CancellableRequest {
-        streamingClient.performSpeechStreamingRequest(request: request, onResult: onResult, completion: completion)
+        do {
+            let urlRequest = try request.build(configuration: configuration)
+            let interceptedRequest = middlewares.reduce(urlRequest) { current, middleware in
+                middleware.intercept(request: current)
+            }
+
+            let session = streamingSessionFactory.makeAudioSpeechStreamingSession(
+                urlRequest: interceptedRequest
+            ) { _, object in
+                onResult(.success(object))
+            } onProcessingError: { _, error in
+                onResult(.failure(error))
+            } onComplete: { [weak self] session, error in
+                completion?(error)
+                self?.invalidateSession(session)
+            }
+            
+            return runSession(session)
+        } catch {
+            completion?(error)
+            return NoOpCancellableRequest()
+        }
+    }
+    
+    func makeDataTask<ResultType: Codable>(forRequest request: URLRequest, completion: @escaping @Sendable (Result<ResultType, Error>) -> Void) -> URLSessionDataTaskProtocol {
+        session.dataTask(with: request) { data, response, error in
+            if let error {
+                return completion(.failure(error))
+            }
+            let (_, data) = self.middlewares.reduce((response, data)) { current, middleware in
+                middleware.intercept(response: current.response, request: request, data: current.data)
+            }
+            guard let data else {
+                return completion(.failure(OpenAIError.emptyData))
+            }
+            let decoder = JSONDecoder()
+            decoder.userInfo[.parsingOptions] = self.configuration.parsingOptions
+            do {
+                completion(.success(try decoder.decode(ResultType.self, from: data)))
+            } catch {
+                if let decoded = JSONResponseErrorDecoder(decoder: decoder).decodeErrorResponse(data: data) {
+                    completion(.failure(decoded))
+                } else {
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+    
+    func makeRawResponseDataTask(forRequest request: URLRequest, completion: @escaping @Sendable (Result<Data, Error>) -> Void) -> URLSessionDataTaskProtocol {
+        session.dataTask(with: request) { data, response, error in
+            if let error {
+                return completion(.failure(error))
+            }
+            let (_, data) = self.middlewares.reduce((response, data)) { current, middleware in
+                middleware.intercept(response: current.response, request: request, data: current.data)
+            }
+            guard let data else {
+                return completion(.failure(OpenAIError.emptyData))
+            }
+            
+            completion(.success(data))
+        }
+    }
+    
+    private func runSession<I>(_ session: StreamingSession<I>) -> CancellableRequest {
+        let performableSession = session.makeSession()
+        
+        executionSerializer.dispatch {
+            self.streamingSessions[session] = performableSession
+        }
+        
+        performableSession.performSession()
+        
+        return cancellablesFactory.makeSessionCanceller(
+            session: performableSession
+        )
+    }
+    
+    private func invalidateSession(_ object: NSObject) {
+        self.executionSerializer.dispatch {
+            let invalidatableSession = self.streamingSessions.removeValue(forKey: object)
+            invalidatableSession?.invalidateAndCancel()
+        }
     }
 }
 
@@ -410,24 +491,6 @@ extension APIPath {
         }
         static let threadsMessages = Assistants(stringValue: "/threads/THREAD_ID/messages")
         static let files = Assistants(stringValue: "/files")
-        
-        let stringValue: String
-    }
-    
-    struct Responses {
-        static let createModelResponse = Responses(stringValue: "/responses")
-        
-        static func getModelResponse(responseId: String) -> Responses {
-            .init(stringValue: "/responses/\(responseId)")
-        }
-        
-        static func deleteModelResponse(responseId: String) -> Responses {
-            .init(stringValue: "/responses/\(responseId)")
-        }
-        
-        static func listInputItems(responseId: String) -> Responses {
-            .init(stringValue: "responses/\(responseId)/input_items")
-        }
         
         let stringValue: String
     }

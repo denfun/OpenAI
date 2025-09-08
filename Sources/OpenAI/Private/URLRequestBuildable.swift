@@ -1,6 +1,6 @@
 //
-//  URLRequestBuildable.swift
-//
+//  File.swift
+//  
 //
 //  Created by Sergii Kryvoblotskyi on 02/04/2023.
 //
@@ -10,7 +10,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-protocol URLRequestBuildable: Sendable {
+protocol URLRequestBuildable {
     func build(
         token: String?,
         organizationIdentifier: String?,

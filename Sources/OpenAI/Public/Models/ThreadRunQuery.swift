@@ -7,13 +7,13 @@
 
 import Foundation
 
-public struct ThreadRunQuery: Equatable, Codable, Sendable {
+public struct ThreadRunQuery: Equatable, Codable {
     
     public let assistantId: String
     public let thread: ThreadsQuery
     public let model: Model?
     public let instructions: String?
-    public let tools: [AssistantsTool]?
+    public let tools: [Tool]?
 
     enum CodingKeys: String, CodingKey {
         case assistantId = "assistant_id"
@@ -28,7 +28,7 @@ public struct ThreadRunQuery: Equatable, Codable, Sendable {
         thread: ThreadsQuery,
         model: Model? = nil,
         instructions: String? = nil,
-        tools: [AssistantsTool]? = nil
+        tools: [Tool]? = nil
     ) {
         self.assistantId = assistantId
         self.thread = thread

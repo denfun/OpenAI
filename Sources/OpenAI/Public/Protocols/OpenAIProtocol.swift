@@ -8,14 +8,18 @@
 import Foundation
 
 #if canImport(Combine)
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
 public protocol OpenAIModern: OpenAIAsync, OpenAICombine {}
 #else
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
 public protocol OpenAIModern: OpenAIAsync {}
 #endif
 
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
+extension OpenAI: OpenAIProtocol {}
+
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
 public protocol OpenAIProtocol: OpenAIModern {
-    var responses: ResponsesEndpointProtocol { get }
-    
     /**
      This function sends an images query to the OpenAI API and retrieves generated images in response. The Images Generation API enables you to create various images or graphics using OpenAI's powerful deep learning models.
      
@@ -215,34 +219,6 @@ public protocol OpenAIProtocol: OpenAIModern {
      Returns a `Result` of type `AudioTranscriptionResult` if successful, or an `Error` if an error occurs.
      **/
     @discardableResult func audioTranscriptions(query: AudioTranscriptionQuery, completion: @escaping @Sendable (Result<AudioTranscriptionResult, Error>) -> Void) -> CancellableRequest
-    
-    /**
-     Transcribes audio data using OpenAI's audio transcription API and completes the operation asynchronously. Provides "Verbose JSON" transcription object on successful completion
-     
-     - Parameter query: The `AudioTranscriptionQuery` instance, containing the information required for the transcription request. **Note:** `responseFormat` must be set to `verboseJson`.
-     - Parameter completion: The completion handler to be executed upon completion of the transcription request.
-     Returns a `Result` of type `AudioTranscriptionVerboseResult` if successful, or an `Error` if an error occurs.
-     **/
-    func audioTranscriptionsVerbose(
-        query: AudioTranscriptionQuery,
-        completion: @escaping @Sendable (Result<AudioTranscriptionVerboseResult, Error>) -> Void
-    ) -> CancellableRequest
-    
-    /**
-      Transcribes audio data by streaming the results in real-time using OpenAI's audio transcription API.
-
-      This method establishes a connection that remains open, receiving and delivering transcription results incrementally as they are processed by the API.
-
-      - Parameter query: The `AudioTranscriptionQuery` instance, containing the information required for the transcription request.
-      - Parameter onResult: A closure that is called multiple times as new transcription results become available. It provides either a partial `AudioTranscriptionStreamResult` or an error encountered during the stream.
-      - Parameter completion: An optional closure executed once the stream is fully closed. It receives an `Error` if the stream terminated unexpectedly, or `nil` if it completed successfully.
-      - Returns: A `CancellableRequest` object that allows you to cancel the ongoing transcription stream.
-      **/
-    func audioTranscriptionStream(
-        query: AudioTranscriptionQuery,
-        onResult: @escaping @Sendable (Result<AudioTranscriptionStreamResult, Error>) -> Void,
-        completion: (@Sendable (Error?) -> Void)?
-    ) -> CancellableRequest
     
     /**
      Translates audio data using OpenAI's audio translation API and completes the operation asynchronously.
